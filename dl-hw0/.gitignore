@@ -8,6 +8,10 @@
 .fuse*
 libuwnet*
 uwnet
+mnist
+mnist.tar.gz
+cifar
+cifar.tar.gz
 
 # OS Generated #
 .DS_Store*
