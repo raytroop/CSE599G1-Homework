@@ -3,7 +3,7 @@
 ---
 
 - [x] [**Homework 0: Fully Connected Networks**](./dl-hw0/README.md)
-- [ ] [**Homework 1: Convolutional Networks**](./dl-hw1/README.md)
+- [x] [**Homework 1: Convolutional Networks**](./dl-hw1/README.md)
 - [ ] [**Homework 2: Batch Norm and Language Modeling**](./dl-hw2/README.md)
 - [ ] [**Homework 3: Reinforcement Learning**](./rl-hw/README.md)
 

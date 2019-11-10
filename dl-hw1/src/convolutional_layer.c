@@ -3,6 +3,10 @@
 #include <assert.h>
 #include "uwnet.h"
 
+/*
+https://github.com/AkshatSh/dl-hw1/blob/master/src/convolutional_layer.c
+*/
+
 // Add bias terms to a matrix
 // matrix m: partially computed output of layer
 // matrix b: bias to add in (should only be one row!)
@@ -35,6 +39,23 @@ void backward_convolutional_bias(matrix delta, matrix db)
     }
 }
 
+void set_column(matrix out, image im, int col, int size, int x, int y, int c) {
+    int index = 0;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            long xcoor = x - size / 2 + i; // relative x position
+            long ycoor = y - size / 2 + j; // relative y position
+            long channeloffset = c*size*size*out.cols;
+            float val = get_pixel(im, ycoor, xcoor, c);
+
+            // set the right value in the proper column
+            out.data[channeloffset + index * out.cols + col] = val;
+            index++;
+        }
+    }
+
+}
+
 // Make a column matrix out of an image
 // image im: image to process
 // int size: kernel size for convolution operation
@@ -49,8 +70,40 @@ matrix im2col(image im, int size, int stride)
     matrix col = make_matrix(rows, cols);
 
     // TODO: 5.1 - fill in the column matrix
+    for (int c =0 ; c < im.c; c++) {
+        int num_conv = 0;
+        for (int i = 0; i < im.h; i += stride){
+            for (int j = 0; j < im.w; j+= stride) {
+                // iterate over every pixel in the image
+                set_column(col, im, num_conv, size, i, j, c);
+                num_conv++;
+            }
+        }
+    }
 
     return col;
+}
+
+void update_column(matrix in, image out, int col, int size, int x, int y, int c) {
+    int index = 0;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            long xcoor = x - size / 2 + i; // relative x position
+            long ycoor = y - size / 2 + j; // relative y position
+            long channeloffset = c*size*size*in.cols;
+
+            // get the value from the image
+            float old_val = get_pixel(out, ycoor, xcoor, c);
+
+            // set the right value in the proper column
+            float new_val = in.data[channeloffset + index * in.cols + col];
+
+            if (xcoor >= 0 && xcoor < out.h && ycoor >= 0 && ycoor < out.w) {
+                set_pixel(out, xcoor, ycoor, c, new_val + old_val);
+            }
+            index++;
+        }
+    }
 }
 
 // The reverse of im2col, add elements back into image
@@ -67,6 +120,16 @@ void col2im(matrix col, int size, int stride, image im)
 
     // TODO: 5.2 - add values into image im from the column matrix
 
+    for (int c = 0; c < im.c; c++) {
+        int num_conv = 0;
+        for (int i = 0; i < im.h; i += stride){
+            for (int j = 0; j < im.w; j+= stride) {
+                // iterate over every pixel in the image
+                update_column(col, im, num_conv, size, i, j, c);
+                num_conv++;
+            }
+        }
+    }
 }
 
 // Run a convolutional layer on input
@@ -129,7 +192,7 @@ void backward_convolutional_layer(layer l, matrix prev_delta)
         matrix xt = transpose_matrix(x);
         matrix dw = matmul(delta, xt);
         axpy_matrix(1, dw, l.dw);
-        
+
         if(prev_delta.data){
             matrix col = matmul(wt, delta);
             col2im(col, l.size, l.stride, dexample);
@@ -151,6 +214,11 @@ void backward_convolutional_layer(layer l, matrix prev_delta)
 void update_convolutional_layer(layer l, float rate, float momentum, float decay)
 {
     // TODO: 5.3 Update the weights, similar to the connected layer.
+    axpy_matrix(decay, l.w, l.dw);
+    axpy_matrix(-rate, l.dw, l.w);
+    scal_matrix(momentum, l.dw);
+    axpy_matrix(-rate, l.db, l.b);
+    scal_matrix(momentum, l.db);
 }
 
 // Make a new convolutional layer
